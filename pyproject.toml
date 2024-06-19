@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "coursework"
+version = "0.1.0"
+description = ""
+authors = ["sofia <example@mail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.2.2"
+
+
+[tool.poetry.group.lint.dependencies]
+mypy = "^1.10.1"
+black = "^24.4.2"
+isort = "^5.13.2"
+flake8 = "^7.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
