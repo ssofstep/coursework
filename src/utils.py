@@ -20,3 +20,5 @@ def suitable_transctions(xls_file: list[dict], search_line: str) -> Any:
         ):
             new_list.append(transaction)
     return new_list
+
+print(read_xls_file("C:\\Users\\Sonya\\lecture\\coursework\\data\\operations.xls"))
