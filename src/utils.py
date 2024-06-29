@@ -4,7 +4,7 @@ import pandas as pd
 
 from src.logger import setup_logger
 
-logger = setup_logger("masks", "utils.log")
+logger = setup_logger("utils", "utils.log")
 
 
 def read_xls_file(path: str) -> list:

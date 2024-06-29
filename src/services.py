@@ -5,7 +5,7 @@ from typing import Any
 from src.logger import setup_logger
 from src.utils import read_xls_file, suitable_transactions
 
-logger = setup_logger("masks", "services.log")
+logger = setup_logger("services", "services.log")
 
 
 def simple_search(word: str) -> Any:
