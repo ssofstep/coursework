@@ -1,7 +1,10 @@
+import os
 from datetime import datetime, time
 from typing import Any
 
 import pandas as pd
+import requests
+from dotenv import load_dotenv
 
 from src.logger import setup_logger
 
@@ -49,8 +52,10 @@ def greeting_message(date: str):
 
 
 def each_card(transactions: list[dict]) -> list[dict]:
+    """Функция, которая формирует JSON-ответ с картами, где есть общая сумма трат, кешбэк и последние 4 цифры карты"""
     dict_summ: dict = {}
     dict_cashback: dict = {}
+    logger.info("Распределяем по номерам  карт общий кешбэк и сумму операций")
     for i in transactions:
         if isinstance(i["Номер карты"], str) and i["Сумма операции"] < 0:
             dict_summ[i["Номер карты"]] = (
@@ -62,6 +67,7 @@ def each_card(transactions: list[dict]) -> list[dict]:
                     + (i["Сумма операции"] * -1) / 100
                 )
     list_card = []
+    logger.info("Соединяем словарики и формируем JSON-ответ")
     for k, v in dict_summ.items():
         list_card.append(
             {
@@ -71,3 +77,52 @@ def each_card(transactions: list[dict]) -> list[dict]:
             }
         )
     return list_card
+
+
+def top_transactions(transactions: list[dict]) -> list[dict]:
+    """Функция, которая возвращает топ-5 транзакций по сумме платежа"""
+    list_transactions = []
+    logger.info(
+        "Фильтруем список транзакций: добавляем только траты и преобразовываем их в +"
+    )
+    for i in transactions:
+        if i["Сумма операции"] < 0:
+            i["Сумма операции"] = i["Сумма операции"] * -1
+            list_transactions.append(i)
+    max_transactions = []
+    logger.info(
+        "Добавляем в список max_transactions топ-5 транзакций по сумме операции"
+    )
+    for item in range(5):
+        max_transaction = max(list_transactions, key=lambda x: x["Сумма операции"])
+        max_transactions.append(
+            {
+                "date": max_transaction["Дата платежа"],
+                "amount": max_transaction["Сумма операции"],
+                "category": max_transaction["Категория"],
+                "description": max_transaction["Описание"],
+            }
+        )
+        list_transactions.remove(max_transaction)
+
+    return max_transactions
+
+
+load_dotenv()
+api_token = os.getenv("API_KEY")
+
+
+def currency(currency_list: list) -> list:
+    """Функция, которая возвращает курс валют"""
+    headers = {"apikey": api_token}
+    payload: dict[Any, Any] = {}
+    list_rates = []
+    for item in currency_list:
+        url_usd = f"https://v6.exchangerate-api.com/v6/{api_token}/latest/{item}"
+        response = requests.get(url_usd, headers=headers, data=payload)
+        currency_json_usd = response.json()
+        usd_url_rates = currency_json_usd["conversion_rates"]["RUB"]
+        logger.info(f"Курс валюты в рублях {usd_url_rates}")
+        list_rates.append({"currency": item, "rate": usd_url_rates})
+
+    return list_rates

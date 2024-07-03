@@ -1,6 +1,10 @@
 from functools import wraps
 from typing import Any, Callable
 
+from src.logger import setup_logger
+
+logger = setup_logger("decorators", "decorators.log")
+
 
 def reports(filename: str = "reports") -> Callable[[Any], Any]:
     """
