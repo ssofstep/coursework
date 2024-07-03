@@ -12,7 +12,7 @@ logger = setup_logger("utils", "utils.log")
 
 
 def read_xls_file(path: str) -> list:
-    """Функция, которая считывает финансовые операции с XLSX-файла"""
+    """Функция, которая считывает финансовые операции с XLS-файла"""
     logger.info("get the path to the xls file")
     xls_file = pd.read_excel(path)
     xls_dict = xls_file.to_dict(orient="records")
