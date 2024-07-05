@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from pandas import DataFrame
 
 from src.utils import (currency, each_card, greeting_message, read_xls_file,
-                       suitable_transactions, top_transactions)
+                       stocks, suitable_transactions, top_transactions)
 
 
 @patch("pandas.read_excel")
@@ -136,7 +136,7 @@ def test_each_card() -> None:
             "Бонусы (включая кэшбэк)": 0,
             "Округление на инвесткопилку": 0,
             "Сумма операции с округлением": 3000.0,
-        }
+        },
     ]
     assert each_card(data) == [
         {"last_digit:": "7197", "total_spent:": 316.0, "cashback:": 3.16}
@@ -263,7 +263,7 @@ def test_top_transactions() -> None:
             "Бонусы (включая кэшбэк)": 6,
             "Округление на инвесткопилку": 0,
             "Сумма операции с округлением": 300.0,
-        }
+        },
     ]
     assert top_transactions(data) == [
         {
@@ -295,17 +295,39 @@ def test_top_transactions() -> None:
             "amount": 159.9,
             "category": "Супермаркеты",
             "description": "Перекрёсток",
-        }
+        },
     ]
 
 
 load_dotenv()
-api_token = os.getenv("API_KEY")
-headers = {"apikey": api_token}
-payload: dict[Any, Any] = {}
+api_token_currency = os.getenv("API_KEY_CURRENCY")
+headers_ = {"apikey": api_token_currency}
+payload_: dict[Any, Any] = {}
 
 
 @patch("requests.get")
 def test_currency(mock_get: Mock) -> None:
     mock_get.return_value.json.return_value = {"conversion_rates": {"RUB": 52}}
     assert currency(["USD"]) == [{"currency": "USD", "rate": 52}]
+
+
+load_dotenv()
+api_token_stocks = os.getenv("API_KEY_STOCKS")
+headers = {"apikey": api_token_stocks}
+payload: dict[Any, Any] = {}
+
+
+@patch("requests.get")
+def test_stocks(mock_get: Mock) -> None:
+    mock_get.return_value.json.return_value = {
+        "Time Series (1min)": {
+            "2024-07-03 17:00:00": {
+                "1. open": "175.7300",
+                "2. high": "175.7300",
+                "3. low": "175.7300",
+                "4. close": "175.7300",
+                "5. volume": "435052",
+            }
+        }
+    }
+    assert stocks(["AAPL"]) == [{"stock": "AAPL", "price": "175.7300"}]

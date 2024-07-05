@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, time
 from typing import Any
-
+import json
 import pandas as pd
 import requests
 from dotenv import load_dotenv
@@ -20,14 +20,19 @@ def read_xls_file(path: str) -> list:
     return xls_dict
 
 
+def read_json_file(path: str) -> dict[Any, Any]:
+    with open(path, "r", encoding="utf8") as file:
+        return json.load(file)
+
+
 def suitable_transactions(xls_file: list[dict], search_line: str) -> Any:
     """Функция, которая возвращает список со всеми транзакциями, содержащими запрос в описании или категории"""
     logger.info(f"start searching for suitable dictionaries by word {search_line}")
     new_list = []
     for transaction in xls_file:
         if (
-            search_line == transaction["Категория"]
-            or search_line == transaction["Описание"]
+                search_line == transaction["Категория"]
+                or search_line == transaction["Описание"]
         ):
             new_list.append(transaction)
     logger.info(f"found dictionaries by word {search_line}")
@@ -59,12 +64,12 @@ def each_card(transactions: list[dict]) -> list[dict]:
     for i in transactions:
         if isinstance(i["Номер карты"], str) and i["Сумма операции"] < 0:
             dict_summ[i["Номер карты"]] = (
-                dict_summ.get(i["Номер карты"], 0) + i["Сумма операции"] * -1
+                    dict_summ.get(i["Номер карты"], 0) + i["Сумма операции"] * -1
             )
             if i["Сумма операции"] * -1 > 100:
                 dict_cashback[i["Номер карты"]] = (
-                    dict_cashback.get(i["Номер карты"], 0)
-                    + (i["Сумма операции"] * -1) / 100
+                        dict_cashback.get(i["Номер карты"], 0)
+                        + (i["Сумма операции"] * -1) / 100
                 )
     list_card = []
     logger.info("Соединяем словарики и формируем JSON-ответ")
@@ -109,16 +114,18 @@ def top_transactions(transactions: list[dict]) -> list[dict]:
 
 
 load_dotenv()
-api_token = os.getenv("API_KEY")
+api_token_currency = os.getenv("API_KEY_CURRENCY")
 
 
 def currency(currency_list: list) -> list:
     """Функция, которая возвращает курс валют"""
-    headers = {"apikey": api_token}
+    headers = {"apikey": api_token_currency}
     payload: dict[Any, Any] = {}
     list_rates = []
     for item in currency_list:
-        url_usd = f"https://v6.exchangerate-api.com/v6/{api_token}/latest/{item}"
+        url_usd = (
+            f"https://v6.exchangerate-api.com/v6/{api_token_currency}/latest/{item}"
+        )
         response = requests.get(url_usd, headers=headers, data=payload)
         currency_json_usd = response.json()
         usd_url_rates = currency_json_usd["conversion_rates"]["RUB"]
@@ -126,3 +133,23 @@ def currency(currency_list: list) -> list:
         list_rates.append({"currency": item, "rate": usd_url_rates})
 
     return list_rates
+
+
+load_dotenv()
+api_token_stocks = os.getenv("API_KEY_STOCKS")
+
+
+def stocks(stockes_list: list) -> list:
+    headers = {"apikey": api_token_stocks}
+    payload: dict[Any, Any] = {}
+    list_stocks = []
+    for item in stockes_list:
+        url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={item}&interval=1min&apikey={api_token_stocks}"
+        response = requests.get(url, headers=headers, data=payload)
+        stocks_json = response.json()
+        url_stocks = stocks_json["Time Series (1min)"]
+        stocks_sorted = sorted(url_stocks.keys())[0]
+        stocks_prices = url_stocks[stocks_sorted]["4. close"]
+        logger.info(f"Стоимость акций {stocks_prices}")
+        list_stocks.append({"stock": item, "price": stocks_prices})
+    return list_stocks
