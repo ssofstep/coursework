@@ -42,7 +42,7 @@ def test_spending_by_category() -> None:
             },
         ]
     )
-    assert spending_by_category(data, "Переводы", "01.01.2018 20:27:51").to_dict(
+    assert spending_by_category(data, "Переводы", "2018-01-01 20:27:51").to_dict(
         "records"
     ) == [
         {

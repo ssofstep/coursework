@@ -1,15 +1,39 @@
-from typing import Any
+import json
+import os.path
+from datetime import datetime, timedelta
 
-from src.utils import greeting_message, each_card, top_transactions, currency, stocks, read_xls_file, read_json_file
+from src.logger import setup_logger
+from src.utils import (currency, each_card, filter_by_date, greeting_message,
+                       read_json_file, read_xls_file, stocks, top_transactions)
+
+logger = setup_logger("views", "views.log")
 
 
-def major(date_time: str) -> dict[Any, Any]:
+def major(date_time: str) -> str:
+    """Функция, которая принимает на вход строку с датой и временем в формате YYYY-MM-DD HH:MM:SS
+    и возвращающую JSON-ответ со следующими данными"""
     greeting = greeting_message(date_time)
-    list_transactions = read_xls_file("..\\data\\operations.xls")
+    logger.info(f"Приветствие - {greeting}")
+    date_time_dt = datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S")
+    date_end = date_time_dt - timedelta(days=int(date_time_dt.strftime("%d")) - 1)
+    list_transactions = read_xls_file(os.path.join("..", "data", "operations.xls"))
+    logger.info("Получили список операций")
+    list_transactions = filter_by_date(date_time_dt, date_end, list_transactions)
     cards = each_card(list_transactions)
+    logger.info("Рассчитали общую сумму трат и кешбэк каждой карты")
     top_transaction = top_transactions(list_transactions)
-    json_file = read_json_file("..\\user_settings.json")
+    logger.info("Вычислили топ 5 транзакций по сумме платежа")
+    json_file = read_json_file(os.path.join("..", "user_settings.json"))
+    logger.info("Загружаем json-файл с валютами и акциями")
     currency_rates = currency(json_file["user_currencies"])
+    logger.info("Получаем текущие валюты")
     stock_prices = stocks(json_file["user_stocks"])
-    return {"greeting": greeting, "cards": cards, "top_transaction": top_transaction, "currency_rates": currency_rates,
-            "stock_prices": stock_prices}
+    logger.info("Получаем стоимость акций")
+    result = {
+        "greeting": greeting,
+        "cards": cards,
+        "top_transaction": top_transaction,
+        "currency_rates": currency_rates,
+        "stock_prices": stock_prices,
+    }
+    return json.dumps(result, ensure_ascii=False)

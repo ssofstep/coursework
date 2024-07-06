@@ -1,7 +1,8 @@
+import json
 import os
 from datetime import datetime, time
 from typing import Any
-import json
+
 import pandas as pd
 import requests
 from dotenv import load_dotenv
@@ -21,7 +22,9 @@ def read_xls_file(path: str) -> list:
 
 
 def read_json_file(path: str) -> dict[Any, Any]:
+    """Функция, которая загружает json-файл в pyrhon-файл"""
     with open(path, "r", encoding="utf8") as file:
+        logger.info("Открываем файл в python формате")
         return json.load(file)
 
 
@@ -31,18 +34,18 @@ def suitable_transactions(xls_file: list[dict], search_line: str) -> Any:
     new_list = []
     for transaction in xls_file:
         if (
-                search_line == transaction["Категория"]
-                or search_line == transaction["Описание"]
+            search_line == transaction["Категория"]
+            or search_line == transaction["Описание"]
         ):
             new_list.append(transaction)
     logger.info(f"found dictionaries by word {search_line}")
     return new_list
 
 
-def greeting_message(date: str):
+def greeting_message(date: str) -> str:
     """Функция, которая возвращает приветствие в зависимости от времени"""
     logger.info("Подбирает приветствие")
-    date_time = datetime.strptime(date, "%d.%m.%Y %H:%M:%S").time()
+    date_time = datetime.strptime(date, "%Y-%m-%d %H:%M:%S").time()
     greeting_time = {
         "Доброй ночи": time(6, 0, 0),
         "Доброе утро": time(12, 0, 0),
@@ -56,7 +59,7 @@ def greeting_message(date: str):
             return k
 
 
-def each_card(transactions: list[dict]) -> list[dict]:
+def each_card(transactions: list) -> list[dict]:
     """Функция, которая формирует JSON-ответ с картами, где есть общая сумма трат, кешбэк и последние 4 цифры карты"""
     dict_summ: dict = {}
     dict_cashback: dict = {}
@@ -64,12 +67,12 @@ def each_card(transactions: list[dict]) -> list[dict]:
     for i in transactions:
         if isinstance(i["Номер карты"], str) and i["Сумма операции"] < 0:
             dict_summ[i["Номер карты"]] = (
-                    dict_summ.get(i["Номер карты"], 0) + i["Сумма операции"] * -1
+                dict_summ.get(i["Номер карты"], 0) + i["Сумма операции"] * -1
             )
             if i["Сумма операции"] * -1 > 100:
                 dict_cashback[i["Номер карты"]] = (
-                        dict_cashback.get(i["Номер карты"], 0)
-                        + (i["Сумма операции"] * -1) / 100
+                    dict_cashback.get(i["Номер карты"], 0)
+                    + (i["Сумма операции"] * -1) / 100
                 )
     list_card = []
     logger.info("Соединяем словарики и формируем JSON-ответ")
@@ -84,7 +87,7 @@ def each_card(transactions: list[dict]) -> list[dict]:
     return list_card
 
 
-def top_transactions(transactions: list[dict]) -> list[dict]:
+def top_transactions(transactions: list) -> list[dict]:
     """Функция, которая возвращает топ-5 транзакций по сумме платежа"""
     list_transactions = []
     logger.info(
@@ -140,11 +143,15 @@ api_token_stocks = os.getenv("API_KEY_STOCKS")
 
 
 def stocks(stockes_list: list) -> list:
+    """Функция, которая возвращает стоимость акций"""
     headers = {"apikey": api_token_stocks}
     payload: dict[Any, Any] = {}
     list_stocks = []
     for item in stockes_list:
-        url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={item}&interval=1min&apikey={api_token_stocks}"
+        url_1 = (
+            "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol="
+        )
+        url = f"{url_1}{item}&interval=1min&apikey={api_token_stocks}"
         response = requests.get(url, headers=headers, data=payload)
         stocks_json = response.json()
         url_stocks = stocks_json["Time Series (1min)"]
@@ -153,3 +160,22 @@ def stocks(stockes_list: list) -> list:
         logger.info(f"Стоимость акций {stocks_prices}")
         list_stocks.append({"stock": item, "price": stocks_prices})
     return list_stocks
+
+
+def filter_by_date(
+    date: datetime, end_date: datetime, transactions: list[dict]
+) -> list[dict]:
+    """Функция, которая фильтрует список операций по диапозону дат"""
+    list_transactions = []
+    logger.info("Поиск диапозона...")
+    date = datetime.strptime(date.strftime("%d %m %Y"), "%d %m %Y")
+    end_date = datetime.strptime(end_date.strftime("%d %m %Y"), "%d %m %Y")
+
+    for i in transactions:
+        date_i = i["Дата операции"]
+        date_dt = datetime.strptime(date_i, "%d.%m.%Y %H:%M:%S")
+        formatting_date_dt = datetime.strptime(date_dt.strftime("%d %m %Y"), "%d %m %Y")
+        if end_date <= formatting_date_dt <= date:
+            list_transactions.append(i)
+    logger.info("Готово")
+    return list_transactions

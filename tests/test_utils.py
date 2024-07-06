@@ -1,12 +1,15 @@
+import json
 import os
+from datetime import datetime
 from typing import Any
 from unittest.mock import Mock, patch
 
 from dotenv import load_dotenv
 from pandas import DataFrame
 
-from src.utils import (currency, each_card, greeting_message, read_xls_file,
-                       stocks, suitable_transactions, top_transactions)
+from src.utils import (currency, each_card, filter_by_date, greeting_message,
+                       read_json_file, read_xls_file, stocks,
+                       suitable_transactions, top_transactions)
 
 
 @patch("pandas.read_excel")
@@ -35,6 +38,25 @@ def test_read_xlsx_file(mock_open: Mock) -> None:
             "from": "Счет 58803664561298323391",
             "to": "Счет 39745660563456619397",
             "description": "Перевод организации",
+        }
+    ]
+
+
+@patch("builtins.open")
+def test_read_json_file(mock_open: Mock) -> None:
+    mock_file = mock_open.return_value.__enter__.return_value
+    mock_file.read.return_value = json.dumps(
+        [
+            {
+                "user_currencies": ["USD", "EUR"],
+                "user_stocks": ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"],
+            }
+        ]
+    )
+    assert read_json_file(os.path.join("..", "user_settings.json")) == [
+        {
+            "user_currencies": ["USD", "EUR"],
+            "user_stocks": ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"],
         }
     ]
 
@@ -98,7 +120,7 @@ def test_suitable_transactions() -> None:
 
 
 def test_greeting_message() -> None:
-    assert greeting_message("02.07.2024 11:32:45") == "Доброе утро"
+    assert greeting_message("2024-07-02 11:32:45") == "Доброе утро"
 
 
 def test_each_card() -> None:
@@ -331,3 +353,19 @@ def test_stocks(mock_get: Mock) -> None:
         }
     }
     assert stocks(["AAPL"]) == [{"stock": "AAPL", "price": "175.7300"}]
+
+
+def test_filter_by_date() -> None:
+    data = [
+        {"Дата операции": "31.12.2021 16:44:00"},
+        {"Дата операции": "30.12.2021 17:50:30"},
+        {"Дата операции": "01.12.2021 17:50:30"},
+        {"Дата операции": "01.11.2020 17:50:30"},
+    ]
+    date = datetime.strptime("31.12.2021 16:44:00", "%d.%m.%Y %H:%M:%S")
+    date_end = datetime.strptime("01.12.2021 16:44:00", "%d.%m.%Y %H:%M:%S")
+    assert filter_by_date(date, date_end, data) == [
+        {"Дата операции": "31.12.2021 16:44:00"},
+        {"Дата операции": "30.12.2021 17:50:30"},
+        {"Дата операции": "01.12.2021 17:50:30"},
+    ]
