@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -10,7 +11,7 @@ logger = setup_logger("reports", "reports.log")
 
 
 @reports()
-def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> pd.DataFrame:
+def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> str:
     """Функция, которая возвращает траты по заданной категории за последние три месяца (от переданной даты)."""
     logger.info("Получаем дату и время или берём текущие")
     if date is None:
@@ -24,5 +25,6 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
     transactions = transactions[pd.to_datetime(transactions["Дата операции"], dayfirst=True) <= date_time]
     logger.info("Сравнивем с верхней границей даты")
     transactions = transactions[pd.to_datetime(transactions["Дата операции"], dayfirst=True) > end_date]
+    transactions_dict = transactions.to_dict(orient="records")
     logger.info("Сравнивем с нижней границей даты")
-    return pd.DataFrame(transactions)
+    return json.dumps(transactions_dict, ensure_ascii=False)
