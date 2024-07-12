@@ -2,6 +2,7 @@ import json
 from unittest.mock import Mock, patch
 
 import pytest
+from pandas import DataFrame
 
 from src.views import major
 
@@ -132,15 +133,13 @@ def data() -> list:
 
 
 @patch("src.views.read_json_file")
-@patch("src.views.read_xls_file")
 @patch("src.views.stocks")
 @patch("src.views.currency")
-def test_major(mock_currency: Mock, mock_stock: Mock, mock_exel: Mock, mock_json: Mock, data: list) -> None:
+def test_major(mock_currency: Mock, mock_stock: Mock, mock_json: Mock, data: list) -> None:
     mock_currency.return_value = [{"conversion_rates": {"RUB": 52}}]
     mock_stock.return_value = [{"stock": "AAPL", "price": "175.7300"}]
-    mock_exel.return_value = data
     mock_json.return_value = {"user_currencies": ["USD"], "user_stocks": ["AAPL"]}
-    assert major("2018-03-30 14:23:05") == json.dumps(
+    assert major(DataFrame(data), "2018-03-30 14:23:05") == json.dumps(
         {
             "greeting": "Добрый день",
             "cards": [{"last_digit:": "7197", "total_spent:": 1920.9, "cashback:": 19.209}],
@@ -179,5 +178,6 @@ def test_major(mock_currency: Mock, mock_stock: Mock, mock_exel: Mock, mock_json
             "currency_rates": [{"conversion_rates": {"RUB": 52}}],
             "stock_prices": [{"stock": "AAPL", "price": "175.7300"}],
         },
+        indent=2,
         ensure_ascii=False,
     )

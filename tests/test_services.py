@@ -45,7 +45,7 @@ def test_simple_search(mock_read: Mock) -> None:
         },
     ]
     mock_read.return_value = DataFrame(data)
-    assert simple_search("Переводы") == json.dumps(
+    assert simple_search(data, "Переводы") == json.dumps(
         [
             {
                 "Дата операции": "01.01.2018 12:49:53",

@@ -7,8 +7,17 @@ from unittest.mock import Mock, patch
 from dotenv import load_dotenv
 from pandas import DataFrame
 
-from src.utils import (currency, each_card, filter_by_date, greeting_message, read_json_file, read_xls_file, stocks,
-                       suitable_transactions, top_transactions)
+from src.utils import (
+    currency,
+    each_card,
+    filter_by_date,
+    greeting_message,
+    read_json_file,
+    read_xls_file,
+    stocks,
+    suitable_transactions,
+    top_transactions,
+)
 
 
 @patch("pandas.read_excel")
